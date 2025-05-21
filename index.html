@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>心电图</title>
+    <style>
+      canvas {
+        background-color: #000;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <canvas id="my-canvas"></canvas>
+    </div>
+    <script>
+      /** @type {HTMLCanvasElement} */
+      const canvas = document.getElementById("my-canvas");
+      canvas.width = 500 * devicePixelRatio;
+      canvas.height = 200 * devicePixelRatio;
+      /** @type {CanvasRenderingContext2D} */
+      const ctx = canvas.getContext("2d");
+
+      // 加载 CSV 文件数据
+      fetch("data.csv")
+        .then((response) => response.text())
+        .then((csvText) => {
+          const data = parseCSV(csvText);
+          drawECG(data);
+        })
+        .catch((error) => console.error("加载 CSV 出错:", error));
+
+      /**
+       * 解析 CSV 文件
+       * @param {string} csvText
+       * @returns {{ time: string, mlii: number, v5: number }[]}
+       */
+      function parseCSV(csvText) {
+        const lines = csvText.split("\n");
+        const data = [];
+        for (let i = 2; i < lines.length; i++) {
+          // 跳过标题行
+          const line = lines[i].trim();
+          if (line) {
+            const values = line.replace(/'/g, "").split(",");
+            const time = values[0];
+            const mlii = parseFloat(values[1]);
+            const v5 = parseFloat(values[2]);
+            data.push({ time, mlii, v5 });
+          }
+        }
+        return data;
+      }
+
+      /**
+       * 绘制心电图
+       * @param {{ time: string, mlii: number, v5: number }[]} data
+       */
+      function drawECG(data) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height); // 清除画布
+        ctx.strokeStyle = "#0f0"; // 设置线条颜色为绿色
+        ctx.lineWidth = 2; // 设置线条宽度
+        ctx.beginPath();
+
+        const scaleX = canvas.width / data.length;
+        const scaleY = canvas.height / 2;
+
+        // 初始化起点
+        let x = 0;
+        let y = canvas.height / 2 - data[0].mlii * scaleY;
+        ctx.moveTo(x, y);
+
+        // 根据 CSV 数据绘制
+        for (let i = 1; i < data.length; i++) {
+          x = i * scaleX;
+          y = canvas.height / 2 - data[i].mlii * scaleY;
+          ctx.lineTo(x, y);
+        }
+
+        ctx.stroke();
+      }
+    </script>
+  </body>
+</html>
